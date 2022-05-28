@@ -675,6 +675,7 @@ const continuous_distributions = [
     "kolmogorov",
     "ksdist",
     "ksonesided",
+    "kumaraswamy",
     "laplace",
     "levy",
     "logistic",

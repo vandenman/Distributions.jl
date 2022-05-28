@@ -111,6 +111,7 @@ export
     Kolmogorov,
     KSDist,
     KSOneSided,
+    Kumaraswamy,
     Laplace,
     Levy,
     LKJ,
