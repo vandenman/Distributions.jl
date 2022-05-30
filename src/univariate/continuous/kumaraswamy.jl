@@ -45,7 +45,7 @@ Kumaraswamy(a::Integer, b::Integer; check_args::Bool=true) = Kumaraswamy(float(a
 
 Kumaraswamy() = Kumaraswamy{Float64}(1.0, 1.0)
 
-Distributions.@distr_support Kumaraswamy 0.0 1.0
+@distr_support Kumaraswamy 0.0 1.0
 
 #### Parameters
 
@@ -100,19 +100,34 @@ end
 
 modes(d::Kumaraswamy) = [mode(d)]
 
+function entropy(d::Kumaraswamy)
+    a, b = params(d)
+    (1 - 1 / a) + (1 - 1 / b) * harmonic(b) - log(a * b)
+end
+
+"""
+Compute the harmonic number for real value x using H(x) = digamma(x+1) + γ where γ is the Euler–Mascheroni constant.
+See https://en.wikipedia.org/wiki/Harmonic_number#Harmonic_numbers_for_real_and_complex_values
+"""
+function harmonic(x::Real)
+    SpecialFunctions.digamma(x + one(x)) + Base.MathConstants.γ
+end
+
 #### Evaluation
 
 function pdf(d::Kumaraswamy{T}, x::Real) where T
-    insupport(x, d) || return zero(T)
+    insupport(d, x) || return zero(T)
     a, b = params(d)
     return a * b * x^(a - 1) * (1 - x^a)^(b - 1)
 end
+
 function cdf(d::Kumaraswamy{T}, x::Real) where T
     x < zero(x) && return zero(T)
     x > one(x)  && return one(T)
     a, b = params(d)
     return 1 - (1 - x^a)^b
 end
+
 function ccdf(d::Kumaraswamy{T}, x::Real) where T
     x < zero(x) && return one(T)
     x > one(x)  && return zero(T)
@@ -121,17 +136,19 @@ function ccdf(d::Kumaraswamy{T}, x::Real) where T
 end
 
 function logpdf(d::Kumaraswamy{T}, x::Real) where T
-    insupport(x, d) || return T(-Inf)
+    insupport(d, x) || return T(-Inf)
     a, b = params(d)
     return log(a) + log(b) + (a - 1) * log(x) + (b - 1) * log1p(-x^a)
 end
-function logcdf(d::Kumaraswamy{T},  x::Real) where T
+
+function logcdf(d::Kumaraswamy{T}, x::Real) where T
     x < zero(x) && return T(-Inf)
     x > one(x)  && return zero(T)
     a, b = params(d)
     return log1p((1 - x^a)^b)
 end
-function logccdf(d::Kumaraswamy{T},  x::Real) where T
+
+function logccdf(d::Kumaraswamy{T}, x::Real) where T
     x < zero(x) && return zero(T)
     x > one(x)  && return T(-Inf)
     a, b = params(d)
@@ -140,6 +157,7 @@ end
 
 function quantile(d::Kumaraswamy,  p::Real)
     # TODO: add check for 0 <= p <= 1?
+    # TODO: could also call a, b = params(d); cdf(Kumaraswamy(1/a, 1/b), p)
     a, b = params(d)
     (1 - (1 - p)^(1 / b))^(1 / a)
 end
@@ -164,8 +182,8 @@ function gradlogpdf(d::Kumaraswamy{T}, x::R) where {T, R <: Real}
         return TP(1 - b) # a == isone(a)
         return 
     elseif isone(x)
-        b < one(b) && return TP(-Inf)
-        b > one(b) && return TP(Inf)
+        b < one(b) && return TP(Inf)
+        b > one(b) && return TP(-Inf)
         return TP(a - 1) # b == isone(b)
     end
 
@@ -192,7 +210,59 @@ Maximum Likelihood Estimate of `Kumaraswamy` Distribution via TODO
 """
 function fit_mle(::Type{<:Kumaraswamy}, x::AbstractArray{T};
     maxiter::Int=1000, tol::Float64=1e-14) where T<:Real
+
+    n = length(x)
+
+    a = 1 # starting value
+
+    converged = false
+    t = 0
+    while !converged && t < maxiter # Newton–Raphson
+        t += 1
+
+        #= 
+            T1, T2, T3 correspond to p. 1973 of 
+
+            Lemonte, Artur J. (2011). "Improved point estimation for the Kumaraswamy distribution". 
+            Journal of Statistical Computation and Simulation. 81 (12): 1971–1982. 
+            doi:https://doi.org/10.1080%2F00949655.2010.511621
+
+            but without dividing by n
+        =#
+        T1 = sum(y->      log(   y^a) / (1 - y^a), x)
+        T2 = sum(y->y^a * log(   y^a) / (1 - y^a), x)
+        T3 = sum(y->      log1p(-y^a),             x)
+
+        # ∂T1∂a = sum(y-> y^a * log(a) * (log1p(-y) - 1) / (y^a - 1)^2,            x)
+        ∂T1∂a = sum(y-> (log(y) * (1 - y^a + y^a * log(y^a))) / (-1 + y^a)^2,     x)
+        # ∂T2∂a = sum(y-> -(y * log(y) * (1 - y^a + y^a * log(y^a))) / (y^a - 1)^2, x)
+        ∂T2∂a = sum(y-> -(y^a * log(y) * (-1 + y^a - log(y^a))) / (-1 + y^a)^2, x)
+        ∂T3∂a = sum(y-> (y^a * log(y)) / (-1 + y^a),                              x)
+        # ∂T3∂a = sum(y-> -((y^a * log(y) * (-1 + y^a - log(y^a))) / (-1 + y^a)^2),    x)
+
+        # lp = n * log(a) + sum(y->log(y^a), x) - T3 - n * log(-T3)
+        ∂lp∂a = (n + T1 + T2 / T3) / a
+        ∂²lp∂²a = (T3 * (-T3 * (n + T1 - a * ∂T1∂a) + a * ∂T2∂a) - T2 * (T3 + a * ∂T3∂a)) / (a^2 * T3^2)
+
+        Δa = ∂lp∂a / ∂²lp∂²a
+        a -= Δa
+        @show t, a, Δa
+        if true#iszero(t % 1) 
+            lp = n * log(a) + sum(y->log(y), x) - T3 - n * log(-T3)
+            @show t, a, Δa, lp
+        end
+
+        converged = abs(Δa) <= tol
+
+    end
+
+    b = -n / sum(y->log1p(-y^a), x)
+
+    return Kumaraswamy(a, b)
 end
+
+# log(x^a / (1 - x^a))
+# log(1 - x^a)
 
 """
     fit(::Type{<:Kumaraswamy}, x::AbstractArray{T})
