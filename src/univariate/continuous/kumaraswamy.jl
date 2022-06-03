@@ -71,7 +71,7 @@ function mean(d::Kumaraswamy)
     _rawmoment(d, 1)
 end
 
-function variance(d::Kumaraswamy) 
+function var(d::Kumaraswamy)
     _rawmoment(d, 2) - _rawmoment(d, 1)^2
 end
 
@@ -130,6 +130,13 @@ function cdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
     return 1 - (1 - x^a)^b
 end
 
+function ccdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
+    x < zero(x) && return one(promote_type(T, R))
+    x > one(x)  && return zero(promote_type(T, R))
+    a, b = params(d)
+    return (1 - x^a)^b
+end
+
 function logpdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
     insupport(d, x) || return promote_type(T, R)(-Inf)
     a, b = params(d)
@@ -140,7 +147,7 @@ function logcdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
     x < zero(x) && return promote_type(T, R)(-Inf)
     x > one(x)  && return zero(promote_type(T, R))
     a, b = params(d)
-    return log1p((1 - x^a)^b)
+    return log1p(-(1 - x^a)^b)
 end
 
 function logccdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}

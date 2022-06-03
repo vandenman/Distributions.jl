@@ -10,8 +10,6 @@ using ForwardDiff
     @test partype(d2) == Float32
     @test d == deepcopy(d)
 
-    @test logpdf(d, 0.42) ≈ log(pdf(d, 0.42))
-
     # out of support
     @test logpdf(d,  2.0) == -Inf
     @test logpdf(d, -2.0) == -Inf
