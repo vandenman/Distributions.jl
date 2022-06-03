@@ -47,6 +47,13 @@ Kumaraswamy() = Kumaraswamy{Float64}(1.0, 1.0)
 
 @distr_support Kumaraswamy 0.0 1.0
 
+#### Conversions
+function convert(::Type{Kumaraswamy{T}}, a::Real, b::Real) where T<:Real
+    Kumaraswamy(T(a), T(b))
+end
+Base.convert(::Type{Kumaraswamy{T}}, d::Kumaraswamy) where {T<:Real} = Kumaraswamy{T}(T(d.a), T(d.b))
+Base.convert(::Type{Kumaraswamy{T}}, d::Kumaraswamy{T}) where {T<:Real} = d
+
 #### Parameters
 
 params(d::Kumaraswamy) = (d.a, d.b)
