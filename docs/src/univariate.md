@@ -284,6 +284,13 @@ KSOneSided
 ```
 
 ```@docs
+Kumaraswamy
+```
+```@example plotdensity
+plotdensity((0, 2), Kumaraswamy) # hide
+```
+
+```@docs
 Laplace
 ```
 ```@example plotdensity
