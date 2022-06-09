@@ -88,7 +88,7 @@ end
 
 function median(d::Kumaraswamy)
     a, b = params(d)
-    (1 - 2^(-1 / b))^(1 / a)
+    (1 - 2^(-inv(b)))^inv(a)
 end
 
 function mode(d::Kumaraswamy; check_args::Bool=true)
@@ -97,14 +97,14 @@ function mode(d::Kumaraswamy; check_args::Bool=true)
         Kumaraswamy,
         (a, a >= one(a) && b >= one(b) && !(a == one(a) && b == one(b)), "mode is defined only when a >= 1 and b >= 1 and (a, b) != (1, 1).")
     )
-    return (a - 1) / (a * b - 1)^(1 / a)
+    return (a - 1) / (a * b - 1)^inv(a)
 end
 
 modes(d::Kumaraswamy) = [mode(d)]
 
 function entropy(d::Kumaraswamy)
     a, b = params(d)
-    (1 - 1 / a) + (1 - 1 / b) * harmonic(b) - log(a * b)
+    1 - inv(a) + (1 - inv(b)) * harmonic(b) - log(a) - log(b)
 end
 
 """
@@ -161,7 +161,7 @@ function quantile(d::Kumaraswamy,  p::Real)
     # TODO: add check for 0 <= p <= 1?
     # TODO: could also call a, b = params(d); cdf(Kumaraswamy(1/a, 1/b), p)
     a, b = params(d)
-    (1 - (1 - p)^(1 / b))^(1 / a)
+    (1 - (1 - p)^inv(b))^inv(a)
 end
 
 
@@ -173,14 +173,12 @@ function gradlogpdf(d::Kumaraswamy{T}, x::R) where {T, R <: Real}
     # uniform distribution
     isone(a) && isone(b) && return zero(TP)
 
-    # boundary values -- limits are from p. 73 of Jones, M. C. (2009). Kumaraswamy’s distribution: A beta-type distribution with some tractability advantages. Statistical methodology, 6(1), 70-81.
+    # boundary values
     if iszero(x)
-        # return TP((a - 1) * log(x))
         a < one(a) && return TP(-Inf)
         a > one(a) && return TP(Inf)
         return TP(1 - b) # a == isone(a)
     elseif isone(x)
-        # return TP((b - 1 ) * log1p(-x))
         b < one(b) && return TP(Inf)
         b > one(b) && return TP(-Inf)
         return TP(a - 1) # b == isone(b)
@@ -226,15 +224,6 @@ function fit_mle(::Type{<:Kumaraswamy}, x::AbstractArray{T};
         T1, T2, T3 correspond are defined on p. 1973, but without dividing by n
         =#
 
-        # cleaner but not type stable
-        # T1 = sum(x->      log(x) / (1 - x^a), x)
-        # T2 = sum(x->x^a * log(x) / (1 - x^a), x)
-        # T3 = sum(x-> log1p(-x^a),             x)
-
-        # ∂T1∂a =  sum(x->x^a * log(x)^2 / (1 - x^a)^2, x)
-        # ∂T2∂a =  sum(x->x^a * log(x)^2 / (1 - x^a)^2, x)
-        # ∂T3∂a = -sum(x->x^a * log(x)   / (1 - x^a),   x)
-
         T1 = T2 = T3 = ∂T1∂a = ∂T2∂a = ∂T3∂a = zero(T)
         for y in x
 
@@ -252,9 +241,8 @@ function fit_mle(::Type{<:Kumaraswamy}, x::AbstractArray{T};
 
         end
 
-
-        ∂lp∂a   = n * (1 / a + T2 / T3) + T1
-        ∂²lp∂²a = n * (-1 / a^2 + (T3 * ∂T2∂a - T2 * ∂T3∂a) / T3^2) + ∂T1∂a
+        ∂lp∂a   = n * (inv(a) + T2 / T3) + T1
+        ∂²lp∂²a = n * (-inv(a^2) + (T3 * ∂T2∂a - T2 * ∂T3∂a) / T3^2) + ∂T1∂a
 
         Δa = ∂lp∂a / ∂²lp∂²a
         a -= Δa
@@ -262,9 +250,7 @@ function fit_mle(::Type{<:Kumaraswamy}, x::AbstractArray{T};
         t += 1
 
     end
-    
-    # cleaner but not type stable
-    # b = -n / sum(x->log1p(-x^a), x)
+
     temp = zero(T)
     for y in x
         temp += log1p(-y^a)
