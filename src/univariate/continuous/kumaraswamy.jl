@@ -20,7 +20,7 @@ In particular, we have if ``X \\sim \\operatorname{Kumaraswamy}(a, 1)`` then
 Kumaraswamy()        # equivalent to Kumaraswamy(1, 1)
 Kumaraswamy(a, b)    # Kumaraswamy distribution with shape parameters a and b
 
-params(d)            # Get the parameters, i.e. (α, β)
+params(d)            # Get the parameters, i.e. (a, b)
 ```
 
 External links
