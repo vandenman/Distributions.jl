@@ -9,11 +9,11 @@ f(x; a, b) = abx^{a - 1}(1 - x^a)^{b - 1}, \\quad x \\in [0, 1]
 
 The Kumaraswamy distribution is related to the [`Uniform`](@ref) distribution via the
 property that if ``X \\sim \\operatorname{Uniform}()`` then 
-``(1 - (1 - X)^\\frac{1}{b})^\\frac{1}{a} \\sim Kumaraswamy(a, b)``.
+``(1 - (1 - X)^\\frac{1}{b})^\\frac{1}{a} \\sim \\operatorname{Kumaraswamy}(a, b)``.
 Furthermore, the  Kumaraswamy distribution is closely related to the [`Beta`](@ref) distribution.
 In particular, we have if ``X \\sim \\operatorname{Kumaraswamy}(a, 1)`` then  
-``X \\sim operatorname{Beta}(a, 1)`` and if ``X \\sim \\operatorname{Kumaraswamy}(1, b)`` then  
-``X \\sim operatorname{Beta}(1, b)``.
+``X \\sim \\operatorname{Beta}(a, 1)`` and if ``X \\sim \\operatorname{Kumaraswamy}(1, b)`` then  
+``X \\sim \\operatorname{Beta}(1, b)``.
 
 
 ```julia
