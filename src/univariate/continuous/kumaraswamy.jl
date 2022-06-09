@@ -48,7 +48,7 @@ Kumaraswamy() = Kumaraswamy{Float64}(1.0, 1.0)
 @distr_support Kumaraswamy 0.0 1.0
 
 #### Conversions
-function convert(::Type{Kumaraswamy{T}}, a::Real, b::Real) where T<:Real
+function convert(::Type{Kumaraswamy{T}}, a::Real, b::Real) where {T<:Real}
     Kumaraswamy(T(a), T(b))
 end
 Base.convert(::Type{Kumaraswamy{T}}, d::Kumaraswamy) where {T<:Real} = Kumaraswamy{T}(T(d.a), T(d.b))
@@ -157,7 +157,7 @@ function logccdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
     return b * log1p(-x^a)
 end
 
-function quantile(d::Kumaraswamy,  p::Real)
+function quantile(d::Kumaraswamy, p::Real)
     # TODO: add check for 0 <= p <= 1?
     # TODO: could also call a, b = params(d); cdf(Kumaraswamy(1/a, 1/b), p)
     a, b = params(d)
@@ -165,7 +165,7 @@ function quantile(d::Kumaraswamy,  p::Real)
 end
 
 
-function gradlogpdf(d::Kumaraswamy{T}, x::R) where {T, R <: Real}
+function gradlogpdf(d::Kumaraswamy{T}, x::R) where {T, R<:Real}
     TP = promote_type(T, R)
     (a, b) = params(d)
 
@@ -205,7 +205,7 @@ end
 Maximum Likelihood Estimate of `Kumaraswamy` Distribution via Newton's Method
 """
 function fit_mle(::Type{<:Kumaraswamy}, x::AbstractArray{T};
-    maxiter::Int=1000, tol::Float64=1e-14) where T<:Real
+    maxiter::Int=1000, tol::Float64=1e-14) where {T<:Real}
 
     n = length(x)
 
