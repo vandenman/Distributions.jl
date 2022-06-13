@@ -193,6 +193,23 @@ end
 
 
 #### Sampling
+struct KumaraswamySampler{T<:Real} <: Sampleable{Univariate,Continuous}
+    ia::T
+    ib::T
+end
+
+function sampler(d::Kumaraswamy{T}) where {T}
+    a, b = params(d)
+    return KumaraswamySampler{T}(inv(a), inv(b))
+end
+
+function rand(rng::AbstractRNG, d::KumaraswamySampler{T}) where {T}
+    # if u ~ Uniform() then (1 - u)~ Uniform()
+    # also u^d.ib ~ Beta(1 / d.ib, 1), but that isn't faster
+    (1 - rand(rng)^d.ib)^d.ia
+end
+
+
 function rand(rng::AbstractRNG, d::Kumaraswamy)
     return quantile(d, rand(rng))
 end
